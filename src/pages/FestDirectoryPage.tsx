@@ -230,6 +230,15 @@ export const FestDirectoryPage: React.FC = () => {
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+                      {fest.thumbnailImage && fest.thumbnailImage !== fest.coverImage && (
+                        <div className="absolute top-3 left-3 w-9 h-9 rounded-lg overflow-hidden border border-white/80 shadow-md bg-zinc-950">
+                          <ResilientImage
+                            src={fest.thumbnailImage}
+                            alt="Festival Emblem"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
                       <div className="absolute bottom-4 left-4 right-4 text-white">
                         <p className="text-xs font-mono text-emerald-300">{fest.status}</p>
                         <p className="font-display text-xl font-bold mt-0.5">{fest.name}</p>

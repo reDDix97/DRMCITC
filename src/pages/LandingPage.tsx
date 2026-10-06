@@ -198,6 +198,15 @@ export const LandingPage: React.FC = () => {
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    {fest.thumbnailImage && fest.thumbnailImage !== fest.coverImage && (
+                      <div className="absolute top-3 left-3 w-8 h-8 rounded-lg overflow-hidden border border-white/80 shadow-md bg-zinc-950">
+                        <ResilientImage
+                          src={fest.thumbnailImage}
+                          alt="Festival Emblem"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs text-white">
                       <span className="font-mono tabular-nums">
                         {formatDateRange(fest.startDate, fest.endDate)}

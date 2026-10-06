@@ -137,9 +137,20 @@ export const FestDetailPage: React.FC<FestDetailPageProps> = ({ slug }) => {
                 <span className="font-semibold text-emerald-700">{festival.status}</span>
               </div>
 
-              <h1 className="font-display text-3xl sm:text-4xl font-bold text-zinc-950 tracking-tight">
-                {festival.name}
-              </h1>
+              <div className="flex items-center gap-3">
+                {festival.thumbnailImage && festival.thumbnailImage !== festival.coverImage && (
+                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-zinc-200 shadow-xs shrink-0 bg-zinc-950">
+                    <ResilientImage
+                      src={festival.thumbnailImage}
+                      alt="Festival Emblem"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <h1 className="font-display text-3xl sm:text-4xl font-bold text-zinc-950 tracking-tight">
+                  {festival.name}
+                </h1>
+              </div>
 
               <p className="text-sm font-medium text-zinc-800">{festival.tagline}</p>
 

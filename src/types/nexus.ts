@@ -43,6 +43,7 @@ export interface Festival {
   organizerName: string;
   status: FestivalStatus;
   coverImage: string;
+  thumbnailImage?: string;
   featured: boolean;
   createdAt: string;
 }

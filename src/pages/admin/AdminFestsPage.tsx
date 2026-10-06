@@ -1,19 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ExternalLink, Plus, Trash2, Edit2, Calendar } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calendar,
+  Check,
+  Edit2,
+  ExternalLink,
+  Image as ImageIcon,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { FestivalImageEditor } from '../../components/FestivalImageEditor';
 import { ResilientImage } from '../../components/QrCodeSvg';
 import { useNexus } from '../../context/NexusContext';
 import { SEED_ORGANIZATION } from '../../data/seed';
 import { Festival, FestivalStatus } from '../../types/nexus';
+import { BANNER_PRESETS } from '../../utils/imagePresets';
 import { AdminLayout } from './AdminLayout';
 
 export const AdminFestsPage: React.FC = () => {
-  const { festivals, events, createFestival, updateFestival, deleteFestival, navigate, currentPath } =
-    useNexus();
+  const {
+    festivals,
+    events,
+    createFestival,
+    updateFestival,
+    deleteFestival,
+    navigate,
+    currentPath,
+  } = useNexus();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form state
+  // Quick image editor modal state
+  const [quickImageFest, setQuickImageFest] = useState<Festival | null>(null);
+  const [quickCoverImage, setQuickCoverImage] = useState<string>('');
+  const [quickThumbnailImage, setQuickThumbnailImage] = useState<string | undefined>(undefined);
+  const [quickImageSaved, setQuickImageSaved] = useState(false);
+
+  // Full form state
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [tagline, setTagline] = useState('');
@@ -23,7 +48,8 @@ export const AdminFestsPage: React.FC = () => {
   const [endDate, setEndDate] = useState('2026-10-17');
   const [venue, setVenue] = useState('DRMC Main Auditorium & Science Complex');
   const [status, setStatus] = useState<FestivalStatus>('Active');
-  const [coverImage, setCoverImage] = useState('/src/assets/images/fest_tech_carnival_1791225914054.jpg');
+  const [coverImage, setCoverImage] = useState(BANNER_PRESETS[0].dataUrl);
+  const [thumbnailImage, setThumbnailImage] = useState<string | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,7 +69,8 @@ export const AdminFestsPage: React.FC = () => {
     setEndDate('2026-11-03');
     setVenue('DRMC Main Auditorium');
     setStatus('Active');
-    setCoverImage('/src/assets/images/fest_tech_carnival_1791225914054.jpg');
+    setCoverImage(BANNER_PRESETS[0].dataUrl);
+    setThumbnailImage(undefined);
     setFormError(null);
     setIsEditing(true);
   };
@@ -59,7 +86,8 @@ export const AdminFestsPage: React.FC = () => {
     setEndDate(fest.endDate);
     setVenue(fest.location || fest.venue || 'DRMC Main Campus');
     setStatus(fest.status);
-    setCoverImage(fest.coverImage);
+    setCoverImage(fest.coverImage || BANNER_PRESETS[0].dataUrl);
+    setThumbnailImage(fest.thumbnailImage);
     setFormError(null);
     setIsEditing(true);
   };
@@ -91,6 +119,7 @@ export const AdminFestsPage: React.FC = () => {
         venue,
         status,
         coverImage,
+        thumbnailImage,
       });
       if (!res.ok) {
         setFormError(res.error || 'Failed to update festival');
@@ -110,6 +139,7 @@ export const AdminFestsPage: React.FC = () => {
         organizerName: 'DRMC IT Club',
         status,
         coverImage,
+        thumbnailImage,
         featured: false,
       });
       if (!res.ok) {
@@ -125,11 +155,32 @@ export const AdminFestsPage: React.FC = () => {
     deleteFestival(id);
   };
 
+  // Quick image manager modal handlers
+  const handleOpenQuickImageModal = (fest: Festival) => {
+    setQuickImageFest(fest);
+    setQuickCoverImage(fest.coverImage);
+    setQuickThumbnailImage(fest.thumbnailImage);
+    setQuickImageSaved(false);
+  };
+
+  const handleSaveQuickImages = () => {
+    if (!quickImageFest) return;
+    updateFestival(quickImageFest.id, {
+      coverImage: quickCoverImage,
+      thumbnailImage: quickThumbnailImage,
+    });
+    setQuickImageSaved(true);
+    setTimeout(() => {
+      setQuickImageFest(null);
+      setQuickImageSaved(false);
+    }, 800);
+  };
+
   return (
     <AdminLayout
       activeTab="fests"
       title="Festival Management"
-      subtitle="Create, configure, and monitor flagship club tech carnivals and symposia"
+      subtitle="Create, brand, configure, and monitor flagship club tech carnivals and symposia"
       actionButton={
         <button
           type="button"
@@ -142,13 +193,15 @@ export const AdminFestsPage: React.FC = () => {
       }
     >
       {isEditing ? (
-        <div className="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 space-y-6 max-w-3xl">
+        <div className="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 space-y-6 max-w-4xl">
           <div className="flex items-center justify-between pb-4 border-b border-zinc-200">
             <div>
               <h2 className="font-display text-xl font-bold text-zinc-950">
                 {editingId ? 'Edit Festival' : 'New Festival'}
               </h2>
-              <p className="text-xs text-zinc-500">Configure public listing details and dates</p>
+              <p className="text-xs text-zinc-500">
+                Configure public listing details, branding images, and schedule
+              </p>
             </div>
             <button
               type="button"
@@ -165,7 +218,8 @@ export const AdminFestsPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSave} className="space-y-6">
+            {/* General Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-800 mb-1">
@@ -218,8 +272,24 @@ export const AdminFestsPage: React.FC = () => {
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Festival overview and mission..."
+                placeholder="Festival overview, themes, and collegiate participation scope..."
                 className="w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            {/* DEDICATED BANNER & THUMBNAIL IMAGE MANAGER */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-zinc-900">
+                Festival Branding Images (Banner & Thumbnail)
+              </label>
+              <FestivalImageEditor
+                coverImage={coverImage}
+                thumbnailImage={thumbnailImage}
+                festivalName={name || 'New Festival'}
+                onChange={({ coverImage: newCover, thumbnailImage: newThumb }) => {
+                  setCoverImage(newCover);
+                  setThumbnailImage(newThumb);
+                }}
               />
             </div>
 
@@ -301,30 +371,53 @@ export const AdminFestsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {festivals.map((fest) => {
             const festEvents = events.filter((e) => e.festivalId === fest.id);
+            const hasCustomThumbnail =
+              Boolean(fest.thumbnailImage) && fest.thumbnailImage !== fest.coverImage;
+
             return (
               <div
                 key={fest.id}
                 className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between"
               >
                 <div>
-                  <div className="relative h-44 bg-zinc-900">
+                  {/* Festival Banner Showcase */}
+                  <div className="relative h-48 bg-zinc-900 group">
                     <ResilientImage
                       src={fest.coverImage}
                       alt={fest.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                    <span
-                      className={`absolute top-3 right-3 font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded shadow-xs ${
-                        fest.status === 'Active'
-                          ? 'bg-emerald-500 text-white'
-                          : fest.status === 'Upcoming'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-zinc-700 text-zinc-200'
-                      }`}
-                    >
-                      {fest.status}
-                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+
+                    {/* Top Status & Emblem badges */}
+                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                      {hasCustomThumbnail && (
+                        <div
+                          className="w-10 h-10 rounded-xl overflow-hidden border-2 border-white/90 shadow-md bg-zinc-950 shrink-0"
+                          title="Custom Festival Thumbnail Emblem"
+                        >
+                          <ResilientImage
+                            src={fest.thumbnailImage!}
+                            alt="Emblem"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+
+                      <span
+                        className={`font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded shadow-xs ml-auto ${
+                          fest.status === 'Active'
+                            ? 'bg-emerald-500 text-white'
+                            : fest.status === 'Upcoming'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-zinc-700 text-zinc-200'
+                        }`}
+                      >
+                        {fest.status}
+                      </span>
+                    </div>
+
+                    {/* Bottom Title on Banner */}
                     <div className="absolute bottom-3 left-3 right-3">
                       <p className="font-mono text-xs text-zinc-300">
                         {fest.year || fest.startDate.slice(0, 4)}
@@ -357,26 +450,45 @@ export const AdminFestsPage: React.FC = () => {
                           {fest.location || fest.venue}
                         </span>
                       </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-zinc-100 text-[11px]">
+                        <span>Branding:</span>
+                        <span className="font-mono text-zinc-600">
+                          {hasCustomThumbnail ? 'Banner + Custom Emblem' : 'Standard Banner'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/fests/${fest.slug}`)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-700 hover:text-zinc-950 cursor-pointer"
-                  >
-                    <span>Public View</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
+                {/* Card Action Footer */}
+                <div className="p-3 bg-zinc-50 border-t border-zinc-200 flex items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickImageModal(fest)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-pointer"
+                      title="Quickly change banner or thumbnail image"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Banner & Thumbnail</span>
+                    </button>
 
-                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/fests/${fest.slug}`)}
+                      className="p-1.5 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200 rounded cursor-pointer transition-colors"
+                      title="Public Festival View"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(fest)}
                       className="p-1.5 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200 rounded cursor-pointer transition-colors"
-                      title="Edit festival"
+                      title="Edit festival details"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -393,6 +505,66 @@ export const AdminFestsPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* QUICK BANNER & THUMBNAIL MODAL */}
+      {quickImageFest && (
+        <div className="fixed inset-0 z-50 bg-zinc-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-zinc-200 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-200">
+              <div>
+                <h3 className="font-display text-base font-bold text-zinc-950">
+                  Update Images — {quickImageFest.name}
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Select a new banner or thumbnail from presets, file upload, or web link
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickImageFest(null)}
+                className="p-1 text-zinc-400 hover:text-zinc-900 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {quickImageSaved && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-800 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>Images updated successfully!</span>
+              </div>
+            )}
+
+            <FestivalImageEditor
+              coverImage={quickCoverImage}
+              thumbnailImage={quickThumbnailImage}
+              festivalName={quickImageFest.name}
+              onChange={({ coverImage: c, thumbnailImage: t }) => {
+                setQuickCoverImage(c);
+                setQuickThumbnailImage(t);
+              }}
+            />
+
+            <div className="pt-3 border-t border-zinc-200 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setQuickImageFest(null)}
+                className="px-4 py-2 text-xs font-semibold text-zinc-600 hover:text-zinc-950 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveQuickImages}
+                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors cursor-pointer shadow-xs"
+              >
+                <Check className="w-4 h-4" />
+                <span>Save Festival Images</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </AdminLayout>

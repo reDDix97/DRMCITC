@@ -31,7 +31,7 @@ Nexus resolves this operational friction by uniting the entire festival lifecycl
 
 ## 3. Features
 
-### 🌟 Public & Participant Experience
+### Public & Participant Experience
 - **Festival Catalog & Detail Portals**:
   - Multi-festival support with detailed banners, countdowns, themes, and venue guides.
   - Granular event breakdown by category (Competitive Programming, Robotics, Web & App Development, Gaming/Esports, Technical Quizzes, Design).
@@ -50,7 +50,7 @@ Nexus resolves this operational friction by uniting the entire festival lifecycl
 - **Global Command Palette (`Cmd + K` / `Ctrl + K`)**:
   - Quick-jump search to navigate to any festival, event category, or administrative console.
 
-### 🛡️ Organizer & Operations Workspace (`/admin`)
+### Organizer & Operations Workspace (`/admin`)
 - **Cross-Device Cloud Synchronization**:
   - Real-time bi-directional synchronization via **Firebase Firestore** (`onSnapshot`).
   - Festivals or events created, edited, or archived on one coordinator's laptop immediately appear on participant smartphones and volunteer check-in terminals without page reloads.
@@ -150,13 +150,7 @@ Nexus resolves this operational friction by uniting the entire festival lifecycl
 
 The application is deployed and available live at:
 
-- **Production / Shared App URL**:  
-  👉 [https://ais-pre-lnbpqduuy57kdwjlcgi3us-88702230071.asia-southeast1.run.app](https://ais-pre-lnbpqduuy57kdwjlcgi3us-88702230071.asia-southeast1.run.app)
-
-- **Development Preview URL**:  
-  👉 [https://ais-dev-lnbpqduuy57kdwjlcgi3us-88702230071.asia-southeast1.run.app](https://ais-dev-lnbpqduuy57kdwjlcgi3us-88702230071.asia-southeast1.run.app)
-
----
+https://drmcitc.netlify.app/
 
 ## 7. Demo Credentials
 
@@ -271,7 +265,6 @@ In full disclosure and compliance with transparency guidelines, the following AI
 ## 12. License
 
 This project is licensed under the **MIT License**.  
-See the [LICENSE](LICENSE) file for the full license text.
 
 ---
 
@@ -279,6 +272,3 @@ See the [LICENSE](LICENSE) file for the full license text.
 
 > **The organizing authority reserves the right to make the final decision regarding rule interpretation, eligibility, judging, scoring, and any matters not explicitly covered in these guidelines. All decisions made by the judging panel and organizing authority shall be final.**
 
----
-
-*Engineered with precision for Dhaka Residential Model College IT Club by the Nexus Development Team.*

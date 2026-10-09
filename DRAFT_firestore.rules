@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default-deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Organizer check: either registered organizer profile or bootstrap admin email
+    function isOrganizer() {
+      return isSignedIn() && (
+        request.auth.token.email == 'abmrifat4501x@gmail.com' ||
+        request.auth.token.email == 'organizer@drmcitclub.org' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organizer')
+      );
+    }
+
+    // Diagnostic Connection Test endpoint
+    match /test/{testId} {
+      allow read: if true;
+      allow write: if isOrganizer();
+    }
+
+    // Host Organization Configuration
+    match /organization/{orgId} {
+      allow read: if true;
+      allow write: if isOrganizer();
+    }
+
+    // Festivals Collection
+    match /festivals/{festivalId} {
+      allow read: if true;
+      allow create: if isOrganizer() && isValidId(festivalId);
+      allow update: if isOrganizer() && isValidId(festivalId);
+      allow delete: if isOrganizer() && isValidId(festivalId);
+    }
+
+    // Events Collection
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isOrganizer() && isValidId(eventId);
+      allow update: if isOrganizer() && isValidId(eventId);
+      allow delete: if isOrganizer() && isValidId(eventId);
+    }
+
+    // Registrations Collection
+    match /registrations/{registrationId} {
+      allow read: if true;
+      allow create: if isValidId(registrationId) &&
+        incoming().fullName is string && incoming().fullName.size() <= 150 &&
+        incoming().email is string && incoming().email.size() <= 150;
+      allow update: if isOrganizer() || (
+        isSignedIn() && existing().email == request.auth.token.email &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'phone', 'teamName', 'notes'])
+      );
+      allow delete: if isOrganizer();
+    }
+
+    // Check-In Logs Collection
+    match /checkIns/{checkInId} {
+      allow read: if isOrganizer();
+      allow create: if isOrganizer() && isValidId(checkInId);
+      allow update: if isOrganizer() && isValidId(checkInId);
+      allow delete: if isOrganizer() && isValidId(checkInId);
+    }
+
+    // User Profiles Collection
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isOrganizer());
+      allow create: if isSignedIn() && request.auth.uid == userId && (
+        incoming().role == 'participant' || isOrganizer()
+      );
+      allow update: if isSignedIn() && request.auth.uid == userId && (
+        !incoming().diff(existing()).affectedKeys().hasAny(['role']) || isOrganizer()
+      );
+      allow delete: if isOrganizer();
+    }
+  }
+}

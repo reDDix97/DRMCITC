@@ -54,16 +54,24 @@ export const AdminEventsPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
+    const festMatch = currentPath.match(/festivalId=([^&]+)/);
+    const targetFestId = festMatch ? festMatch[1] : null;
+
+    if (targetFestId) {
+      setFestivalFilter(targetFestId);
+    }
+
     if (currentPath.includes('action=new')) {
-      handleOpenCreate();
+      handleOpenCreate(targetFestId || undefined);
     }
   }, [currentPath]);
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = (preselectedFestivalId?: string) => {
+    const festId = typeof preselectedFestivalId === 'string' ? preselectedFestivalId : undefined;
     setEditingId(null);
     setName('');
     setSlug('');
-    setFestivalId(festivals[0]?.id || '');
+    setFestivalId(festId || (festivalFilter !== 'ALL' ? festivalFilter : festivals[0]?.id || ''));
     setCategory('Competition');
     setDescription('');
     setDate('2026-10-15');
@@ -203,7 +211,7 @@ export const AdminEventsPage: React.FC = () => {
       actionButton={
         <button
           type="button"
-          onClick={handleOpenCreate}
+          onClick={() => handleOpenCreate()}
           className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-zinc-950 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />

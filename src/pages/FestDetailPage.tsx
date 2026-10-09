@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, RotateCcw, Search } from 'lucide-react';
+import { ArrowLeft, Edit2, Plus, RotateCcw, Search } from 'lucide-react';
 import { EventCard } from '../components/EventCard';
 import { ResilientImage } from '../components/QrCodeSvg';
 import { useNexus } from '../context/NexusContext';
@@ -25,6 +25,7 @@ export const FestDetailPage: React.FC<FestDetailPageProps> = ({ slug }) => {
     getFestivalBySlug,
     events,
     getEventAvailability,
+    currentUser,
   } = useNexus();
 
   const festival = getFestivalBySlug(slug);
@@ -94,8 +95,8 @@ export const FestDetailPage: React.FC<FestDetailPageProps> = ({ slug }) => {
   );
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
-      <div>
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <button
           type="button"
           onClick={() => navigate('/fests')}
@@ -104,6 +105,27 @@ export const FestDetailPage: React.FC<FestDetailPageProps> = ({ slug }) => {
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Festival & Event Directory</span>
         </button>
+
+        {currentUser?.role === 'organizer' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/fests?edit=${festival.id}&action=add-event`)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors cursor-pointer shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Event to this Festival</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/fests?edit=${festival.id}`)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white border border-zinc-300 hover:border-zinc-900 text-zinc-900 rounded-lg transition-colors cursor-pointer"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>Edit Festival</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <section className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">

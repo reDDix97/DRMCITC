@@ -1,4 +1,10 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import {
+  auth,
+  signInWithGoogle as firebaseGoogleSignIn,
+  signOutFirebase,
+} from '../lib/firebase';
 import {
   SEED_CHECKINS,
   SEED_EVENTS,
@@ -19,6 +25,7 @@ import {
 } from '../types/nexus';
 
 const STORAGE_KEYS = {
+  ORGANIZATION: 'nexus_v1_organization',
   FESTIVALS: 'nexus_v1_festivals',
   EVENTS: 'nexus_v1_events',
   REGISTRATIONS: 'nexus_v1_registrations',
@@ -70,6 +77,8 @@ interface NexusContextValue {
   checkIns: CheckInLog[];
   users: UserProfile[];
   currentUser: UserProfile | null;
+  firebaseUser: FirebaseUser | null;
+  signInWithGoogle: () => Promise<{ ok: boolean; error?: string }>;
 
   login: (emailOrId: string, password?: string) => {
     ok: boolean;
@@ -85,6 +94,11 @@ interface NexusContextValue {
     ok: boolean;
     error?: string;
   };
+  updateOrganizerEmail: (newEmail: string) => {
+    ok: boolean;
+    error?: string;
+  };
+  updateOrganization: (updates: Partial<Organization>) => void;
   logout: () => void;
 
   getFestivalBySlug: (slugOrId: string) => Festival | undefined;
@@ -175,6 +189,10 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
+  const [organization, setOrganization] = useState<Organization>(() =>
+    loadFromStorage(STORAGE_KEYS.ORGANIZATION, SEED_ORGANIZATION)
+  );
+
   const [festivals, setFestivals] = useState<Festival[]>(() => {
     const raw = loadFromStorage(STORAGE_KEYS.FESTIVALS, SEED_FESTIVALS);
     return raw.map((f) => {
@@ -203,7 +221,51 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() =>
     loadFromStorage<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null)
   );
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      setFirebaseUser(fbUser);
+      if (fbUser) {
+        const email = (fbUser.email || '').toLowerCase();
+        const isOrganizerEmail =
+          email === 'abmrifat4501x@gmail.com' ||
+          email === 'organizer@drmcitclub.org';
+
+        setUsers((prev) => {
+          const found = prev.find(
+            (u) => u.email.toLowerCase() === email || u.id === fbUser.uid
+          );
+          if (found) {
+            const updated: UserProfile =
+              isOrganizerEmail && found.role !== 'organizer'
+                ? { ...found, role: 'organizer' as const }
+                : found;
+            setCurrentUser(updated);
+            return prev.map((u) => (u.id === updated.id ? updated : u));
+          } else {
+            const newUser: UserProfile = {
+              id: fbUser.uid,
+              fullName: fbUser.displayName || 'Authorized User',
+              email: fbUser.email || '',
+              phone: fbUser.phoneNumber || '',
+              studentId: `STU-${fbUser.uid.slice(0, 6).toUpperCase()}`,
+              institution: 'Dhaka Residential Model College',
+              department: isOrganizerEmail ? 'Operations Committee' : 'General Delegation',
+              role: isOrganizerEmail ? 'organizer' : 'participant',
+              createdAt: new Date().toISOString(),
+            };
+            setCurrentUser(newUser);
+            return [...prev, newUser];
+          }
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => saveToStorage(STORAGE_KEYS.ORGANIZATION, organization), [organization]);
   useEffect(() => saveToStorage(STORAGE_KEYS.FESTIVALS, festivals), [festivals]);
   useEffect(() => saveToStorage(STORAGE_KEYS.EVENTS, events), [events]);
   useEffect(() => saveToStorage(STORAGE_KEYS.REGISTRATIONS, registrations), [registrations]);
@@ -315,7 +377,49 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return { ok: true };
   };
 
+  const updateOrganizerEmail = (newEmail: string) => {
+    const cleanEmail = newEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      return { ok: false, error: 'Please enter a valid official email address.' };
+    }
+    if (currentUser?.role !== 'organizer') {
+      return {
+        ok: false,
+        error: 'Unauthorized: Only authenticated organizers can update organizer security credentials.',
+      };
+    }
+    const conflict = users.find(
+      (u) => u.id !== currentUser.id && u.email.toLowerCase() === cleanEmail
+    );
+    if (conflict) {
+      return {
+        ok: false,
+        error: 'An account with this email address already exists. Please choose a different email.',
+      };
+    }
+
+    setUsers((prev) =>
+      prev.map((u) => (u.id === currentUser.id ? { ...u, email: cleanEmail } : u))
+    );
+    setCurrentUser((prev) => (prev ? { ...prev, email: cleanEmail } : null));
+    return { ok: true };
+  };
+
+  const updateOrganization = (updates: Partial<Organization>) => {
+    setOrganization((prev) => ({ ...prev, ...updates }));
+  };
+
+  const signInWithGoogle = async () => {
+    const res = await firebaseGoogleSignIn();
+    if (!res.ok) {
+      return { ok: false, error: res.error };
+    }
+    return { ok: true };
+  };
+
   const logout = () => {
+    signOutFirebase().catch(() => {});
     setCurrentUser(null);
   };
 
@@ -791,6 +895,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetToSeedData = () => {
+    setOrganization(SEED_ORGANIZATION);
     setFestivals(SEED_FESTIVALS);
     setEvents(SEED_EVENTS);
     setRegistrations(SEED_REGISTRATIONS);
@@ -805,16 +910,20 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       navigate,
       commandPaletteOpen,
       setCommandPaletteOpen,
-      organization: SEED_ORGANIZATION,
+      organization,
       festivals,
       events,
       registrations,
       checkIns,
       users,
       currentUser,
+      firebaseUser,
       login,
       registerUser,
+      signInWithGoogle,
       updateOrganizerPassword,
+      updateOrganizerEmail,
+      updateOrganization,
       logout,
       getFestivalBySlug,
       getEventBySlug,
@@ -836,12 +945,14 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [
       currentPath,
       commandPaletteOpen,
+      organization,
       festivals,
       events,
       registrations,
       checkIns,
       users,
       currentUser,
+      firebaseUser,
     ]
   );
 

@@ -1,0 +1,171 @@
+{
+  "entities": {
+    "Festival": {
+      "title": "Festival",
+      "description": "A campus festival or tech symposium holding multiple events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "slug": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "theme": { "type": "string", "maxLength": 300 },
+        "academicYear": { "type": "string", "maxLength": 50 },
+        "startDate": { "type": "string", "maxLength": 60 },
+        "endDate": { "type": "string", "maxLength": 60 },
+        "venue": { "type": "string", "maxLength": 200 },
+        "campus": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["Draft", "Upcoming", "Active", "Archived"] },
+        "coverImage": { "type": "string", "maxLength": 100000 },
+        "logoImage": { "type": "string", "maxLength": 50000 },
+        "registrationDeadline": { "type": "string", "maxLength": 60 },
+        "organizationId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "name", "slug", "status", "startDate", "endDate"]
+    },
+    "ClubEvent": {
+      "title": "ClubEvent",
+      "description": "A competition, hackathon, workshop, or showcase in a festival",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "festivalId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "slug": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "enum": ["Competition", "Workshop", "Seminar", "Olympiad", "Showcase"] },
+        "format": { "type": "string", "enum": ["Solo", "Team", "Solo or Team"] },
+        "teamMinSize": { "type": "number" },
+        "teamMaxSize": { "type": "number" },
+        "summary": { "type": "string", "maxLength": 1000 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "scheduleStart": { "type": "string", "maxLength": 60 },
+        "scheduleEnd": { "type": "string", "maxLength": 60 },
+        "venue": { "type": "string", "maxLength": 200 },
+        "capacity": { "type": "number" },
+        "registrationFee": { "type": "number" },
+        "feeType": { "type": "string", "enum": ["Free", "Paid"] },
+        "prizes": { "type": "string", "maxLength": 1000 },
+        "rules": { "type": "string", "maxLength": 4000 },
+        "eligibility": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["Draft", "Open", "Closed", "Archived"] },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "festivalId", "name", "slug", "category", "capacity", "status"]
+    },
+    "Registration": {
+      "title": "Registration",
+      "description": "Student event registration and security ticket pass",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "registrationCode": { "type": "string", "maxLength": 64 },
+        "eventId": { "type": "string", "maxLength": 128 },
+        "festivalId": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 150 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "studentId": { "type": "string", "maxLength": 50 },
+        "institution": { "type": "string", "maxLength": 200 },
+        "classYear": { "type": "string", "maxLength": 50 },
+        "teamName": { "type": "string", "maxLength": 150 },
+        "status": { "type": "string", "enum": ["Registered", "Confirmed", "Waitlisted", "Checked In", "Cancelled"] },
+        "registeredAt": { "type": "string", "maxLength": 60 },
+        "checkedInAt": { "type": "string", "maxLength": 60 },
+        "notes": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "registrationCode", "eventId", "festivalId", "fullName", "email", "status"]
+    },
+    "CheckInLog": {
+      "title": "CheckInLog",
+      "description": "QR attendance check-in entry verified at venue gate",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "registrationId": { "type": "string", "maxLength": 128 },
+        "eventId": { "type": "string", "maxLength": 128 },
+        "festivalId": { "type": "string", "maxLength": 128 },
+        "verifiedBy": { "type": "string", "maxLength": 128 },
+        "checkedInAt": { "type": "string", "maxLength": 60 },
+        "participantName": { "type": "string", "maxLength": 150 },
+        "eventName": { "type": "string", "maxLength": 200 },
+        "notes": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "registrationId", "eventId", "festivalId", "verifiedBy", "checkedInAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile for organizers and participants",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 150 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "studentId": { "type": "string", "maxLength": 50 },
+        "institution": { "type": "string", "maxLength": 200 },
+        "department": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "enum": ["organizer", "participant"] },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "fullName", "email", "role"]
+    },
+    "Organization": {
+      "title": "Organization",
+      "description": "Host club organization profile and operational configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "shortName": { "type": "string", "maxLength": 50 },
+        "subtitle": { "type": "string", "maxLength": 200 },
+        "tagline": { "type": "string", "maxLength": 300 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "campus": { "type": "string", "maxLength": 200 },
+        "institution": { "type": "string", "maxLength": 200 },
+        "contactEmail": { "type": "string", "maxLength": 150 },
+        "website": { "type": "string", "maxLength": 200 }
+      },
+      "required": ["id", "name", "contactEmail"]
+    },
+    "ConnectionTest": {
+      "title": "ConnectionTest",
+      "description": "Diagnostic health check document",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "maxLength": 50 },
+        "timestamp": { "type": "string", "maxLength": 60 }
+      }
+    }
+  },
+  "firestore": {
+    "/festivals/{festivalId}": {
+      "schema": "Festival",
+      "description": "Campus festival profiles, schedules, and banners"
+    },
+    "/events/{eventId}": {
+      "schema": "ClubEvent",
+      "description": "Festival events, seat capacities, and rules"
+    },
+    "/registrations/{registrationId}": {
+      "schema": "Registration",
+      "description": "Registrations with verifiable security codes and passes"
+    },
+    "/checkIns/{checkInId}": {
+      "schema": "CheckInLog",
+      "description": "Attendance verification and venue check-in logs"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles and credentials"
+    },
+    "/organization/{orgId}": {
+      "schema": "Organization",
+      "description": "Host club organization metadata"
+    },
+    "/test/{testId}": {
+      "schema": "ConnectionTest",
+      "description": "Firestore live connectivity check endpoint"
+    }
+  }
+}

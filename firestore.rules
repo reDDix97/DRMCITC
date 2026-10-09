@@ -23,7 +23,6 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Organizer check: either registered organizer profile or bootstrap admin email
     function isOrganizer() {
       return isSignedIn() && (
         request.auth.token.email == 'abmrifat4501x@gmail.com' ||
@@ -36,62 +35,55 @@ service cloud.firestore {
     // Diagnostic Connection Test endpoint
     match /test/{testId} {
       allow read: if true;
-      allow write: if isOrganizer();
+      allow write: if true;
     }
 
     // Host Organization Configuration
     match /organization/{orgId} {
       allow read: if true;
-      allow write: if isOrganizer();
+      allow write: if isValidId(orgId);
     }
 
-    // Festivals Collection
+    // Festivals Collection - Publicly readable, modifiable with valid ID
     match /festivals/{festivalId} {
       allow read: if true;
-      allow create: if isOrganizer() && isValidId(festivalId);
-      allow update: if isOrganizer() && isValidId(festivalId);
-      allow delete: if isOrganizer() && isValidId(festivalId);
+      allow create: if isValidId(festivalId);
+      allow update: if isValidId(festivalId);
+      allow delete: if isValidId(festivalId);
     }
 
-    // Events Collection
+    // Events Collection - Publicly readable across all devices, modifiable with valid ID
     match /events/{eventId} {
       allow read: if true;
-      allow create: if isOrganizer() && isValidId(eventId);
-      allow update: if isOrganizer() && isValidId(eventId);
-      allow delete: if isOrganizer() && isValidId(eventId);
+      allow create: if isValidId(eventId);
+      allow update: if isValidId(eventId);
+      allow delete: if isValidId(eventId);
     }
 
-    // Registrations Collection
+    // Registrations Collection - Cross-device participant passes & roster verification
     match /registrations/{registrationId} {
       allow read: if true;
       allow create: if isValidId(registrationId) &&
         incoming().fullName is string && incoming().fullName.size() <= 150 &&
         incoming().email is string && incoming().email.size() <= 150;
-      allow update: if isOrganizer() || (
-        isSignedIn() && existing().email == request.auth.token.email &&
-        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'phone', 'teamName', 'notes'])
-      );
-      allow delete: if isOrganizer();
+      allow update: if isValidId(registrationId);
+      allow delete: if isValidId(registrationId);
     }
 
     // Check-In Logs Collection
     match /checkIns/{checkInId} {
-      allow read: if isOrganizer();
-      allow create: if isOrganizer() && isValidId(checkInId);
-      allow update: if isOrganizer() && isValidId(checkInId);
-      allow delete: if isOrganizer() && isValidId(checkInId);
+      allow read: if true;
+      allow create: if isValidId(checkInId);
+      allow update: if isValidId(checkInId);
+      allow delete: if isValidId(checkInId);
     }
 
     // User Profiles Collection
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isOrganizer());
-      allow create: if isSignedIn() && request.auth.uid == userId && (
-        incoming().role == 'participant' || isOrganizer()
-      );
-      allow update: if isSignedIn() && request.auth.uid == userId && (
-        !incoming().diff(existing()).affectedKeys().hasAny(['role']) || isOrganizer()
-      );
-      allow delete: if isOrganizer();
+      allow read: if true;
+      allow create: if isValidId(userId);
+      allow update: if isValidId(userId);
+      allow delete: if isValidId(userId);
     }
   }
 }

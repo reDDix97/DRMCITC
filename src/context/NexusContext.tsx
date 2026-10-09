@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 import {
   auth,
+  db,
+  handleFirestoreError,
+  OperationType,
+  cleanForFirestore,
   signInWithGoogle as firebaseGoogleSignIn,
   signOutFirebase,
 } from '../lib/firebase';
@@ -265,6 +270,127 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsubscribe();
   }, []);
 
+  // Real-time Firestore synchronization across devices
+  useEffect(() => {
+    // 1. Synchronize Festivals
+    const unsubFestivals = onSnapshot(
+      collection(db, 'festivals'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          const localFests = loadFromStorage<Festival[]>(STORAGE_KEYS.FESTIVALS, SEED_FESTIVALS);
+          const initial = localFests.length > 0 ? localFests : SEED_FESTIVALS;
+          initial.forEach((f) => {
+            setDoc(doc(db, 'festivals', f.id), cleanForFirestore(f)).catch(() => {});
+          });
+          setFestivals(initial);
+        } else {
+          const remoteFests = snapshot.docs.map((d) => d.data() as Festival);
+          const localFests = loadFromStorage<Festival[]>(STORAGE_KEYS.FESTIVALS, []);
+          const missing = localFests.filter((lf) => !remoteFests.some((rf) => rf.id === lf.id));
+          if (missing.length > 0) {
+            missing.forEach((f) => {
+              setDoc(doc(db, 'festivals', f.id), cleanForFirestore(f)).catch(() => {});
+            });
+            setFestivals([...remoteFests, ...missing]);
+          } else {
+            setFestivals(remoteFests);
+          }
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'festivals');
+      }
+    );
+
+    // 2. Synchronize Events (Real-time sync between organizer and participant devices)
+    const unsubEvents = onSnapshot(
+      collection(db, 'events'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          const localEvents = loadFromStorage<ClubEvent[]>(STORAGE_KEYS.EVENTS, SEED_EVENTS);
+          const initial = localEvents.length > 0 ? localEvents : SEED_EVENTS;
+          initial.forEach((e) => {
+            setDoc(doc(db, 'events', e.id), cleanForFirestore(e)).catch(() => {});
+          });
+          setEvents(initial);
+        } else {
+          const remoteEvents = snapshot.docs.map((d) => d.data() as ClubEvent);
+          const localEvents = loadFromStorage<ClubEvent[]>(STORAGE_KEYS.EVENTS, []);
+          const missing = localEvents.filter((le) => !remoteEvents.some((re) => re.id === le.id));
+          if (missing.length > 0) {
+            missing.forEach((e) => {
+              setDoc(doc(db, 'events', e.id), cleanForFirestore(e)).catch(() => {});
+            });
+            setEvents([...remoteEvents, ...missing]);
+          } else {
+            setEvents(remoteEvents);
+          }
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'events');
+      }
+    );
+
+    // 3. Synchronize Registrations
+    const unsubRegistrations = onSnapshot(
+      collection(db, 'registrations'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const remoteRegs = snapshot.docs.map((d) => d.data() as Registration);
+          setRegistrations(remoteRegs);
+        } else {
+          const localRegs = loadFromStorage<Registration[]>(STORAGE_KEYS.REGISTRATIONS, SEED_REGISTRATIONS);
+          if (localRegs.length > 0) {
+            localRegs.forEach((r) => {
+              setDoc(doc(db, 'registrations', r.id), cleanForFirestore(r)).catch(() => {});
+            });
+          }
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'registrations');
+      }
+    );
+
+    // 4. Synchronize Check-In Logs
+    const unsubCheckIns = onSnapshot(
+      collection(db, 'checkIns'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const remoteLogs = snapshot.docs.map((d) => d.data() as CheckInLog);
+          setCheckIns(remoteLogs);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'checkIns');
+      }
+    );
+
+    // 5. Synchronize Organization Profile
+    const unsubOrg = onSnapshot(
+      doc(db, 'organization', 'default'),
+      (snap) => {
+        if (snap.exists()) {
+          setOrganization(snap.data() as Organization);
+        } else {
+          setDoc(doc(db, 'organization', 'default'), cleanForFirestore(SEED_ORGANIZATION)).catch(() => {});
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'organization/default');
+      }
+    );
+
+    return () => {
+      unsubFestivals();
+      unsubEvents();
+      unsubRegistrations();
+      unsubCheckIns();
+      unsubOrg();
+    };
+  }, []);
+
   useEffect(() => saveToStorage(STORAGE_KEYS.ORGANIZATION, organization), [organization]);
   useEffect(() => saveToStorage(STORAGE_KEYS.FESTIVALS, festivals), [festivals]);
   useEffect(() => saveToStorage(STORAGE_KEYS.EVENTS, events), [events]);
@@ -407,7 +533,13 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateOrganization = (updates: Partial<Organization>) => {
-    setOrganization((prev) => ({ ...prev, ...updates }));
+    setOrganization((prev) => {
+      const next = { ...prev, ...updates };
+      setDoc(doc(db, 'organization', 'default'), cleanForFirestore(next), { merge: true }).catch((err) => {
+        handleFirestoreError(err, OperationType.WRITE, 'organization/default');
+      });
+      return next;
+    });
   };
 
   const signInWithGoogle = async () => {
@@ -624,6 +756,12 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setRegistrations((prev) => [newReg, ...prev]);
+
+    // Push new registration to Firestore so all devices see updated counts & roster
+    setDoc(doc(db, 'registrations', newReg.id), cleanForFirestore(newReg)).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `registrations/${newReg.id}`);
+    });
+
     return { ok: true, registration: newReg };
   };
 
@@ -668,10 +806,13 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     const nowIso = new Date().toISOString();
+    let updatedReg: Registration | null = null;
+    let newLog: CheckInLog | null = null;
+
     setRegistrations((prev) =>
       prev.map((item) => {
         if (item.id !== reg.id) return item;
-        return {
+        const res: Registration = {
           ...item,
           status: nextStatus,
           checkedInAt:
@@ -685,11 +826,19 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               ? currentUser?.fullName || 'Organizer'
               : item.checkedInBy,
         };
+        updatedReg = res;
+        return res;
       })
     );
 
+    if (updatedReg) {
+      setDoc(doc(db, 'registrations', reg.id), cleanForFirestore(updatedReg), { merge: true }).catch((err) => {
+        handleFirestoreError(err, OperationType.WRITE, `registrations/${reg.id}`);
+      });
+    }
+
     if (nextStatus === 'Checked In') {
-      const newLog: CheckInLog = {
+      newLog = {
         id: `chk-${Date.now()}`,
         registrationId: reg.id,
         registrationCode: reg.registrationCode,
@@ -699,7 +848,10 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         verifiedBy: currentUser?.fullName || 'Organizer',
         method: 'manual_code',
       };
-      setCheckIns((prev) => [newLog, ...prev]);
+      setCheckIns((prev) => [newLog!, ...prev]);
+      setDoc(doc(db, 'checkIns', newLog.id), cleanForFirestore(newLog)).catch((err) => {
+        handleFirestoreError(err, OperationType.WRITE, `checkIns/${newLog!.id}`);
+      });
     }
 
     return { ok: true };
@@ -711,9 +863,13 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ) => {
     const reg = registrations.find((r) => r.id === registrationId);
     if (!reg) return { ok: false, error: 'Registration not found.' };
+    const updated = { ...reg, ...updates };
     setRegistrations((prev) =>
-      prev.map((r) => (r.id === registrationId ? { ...r, ...updates } : r))
+      prev.map((r) => (r.id === registrationId ? updated : r))
     );
+    setDoc(doc(db, 'registrations', registrationId), cleanForFirestore(updated), { merge: true }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `registrations/${registrationId}`);
+    });
     return { ok: true };
   };
 
@@ -788,19 +944,24 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setRegistrations((prev) => prev.map((r) => (r.id === reg.id ? updated : r)));
-    setCheckIns((prev) => [
-      {
-        id: `chk-${Date.now()}`,
-        registrationId: reg.id,
-        registrationCode: reg.registrationCode,
-        eventId: reg.eventId,
-        participantName: reg.fullName,
-        checkedInAt: nowIso,
-        verifiedBy: currentUser?.fullName || 'Organizer',
-        method,
-      },
-      ...prev,
-    ]);
+    const newLog: CheckInLog = {
+      id: `chk-${Date.now()}`,
+      registrationId: reg.id,
+      registrationCode: reg.registrationCode,
+      eventId: reg.eventId,
+      participantName: reg.fullName,
+      checkedInAt: nowIso,
+      verifiedBy: currentUser?.fullName || 'Organizer',
+      method,
+    };
+    setCheckIns((prev) => [newLog, ...prev]);
+
+    setDoc(doc(db, 'registrations', reg.id), cleanForFirestore(updated), { merge: true }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `registrations/${reg.id}`);
+    });
+    setDoc(doc(db, 'checkIns', newLog.id), cleanForFirestore(newLog)).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `checkIns/${newLog.id}`);
+    });
 
     return { ok: true, registration: updated };
   };
@@ -826,6 +987,12 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setFestivals((prev) => [newFest, ...prev]);
+
+    // Push new festival to Firestore so all devices see it in real-time
+    setDoc(doc(db, 'festivals', newFest.id), cleanForFirestore(newFest)).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `festivals/${newFest.id}`);
+    });
+
     return { ok: true, festival: newFest };
   };
 
@@ -834,6 +1001,12 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!existing) return { ok: false, error: 'Festival not found.' };
     const updated = { ...existing, ...updates };
     setFestivals((prev) => prev.map((f) => (f.id === id ? updated : f)));
+
+    // Push festival changes to Firestore so edits sync in real time across devices
+    setDoc(doc(db, 'festivals', id), cleanForFirestore(updated), { merge: true }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `festivals/${id}`);
+    });
+
     return { ok: true, festival: updated };
   };
 
@@ -847,6 +1020,11 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
     }
     setFestivals((prev) => prev.filter((f) => f.id !== id));
+
+    deleteDoc(doc(db, 'festivals', id)).catch((err) => {
+      handleFirestoreError(err, OperationType.DELETE, `festivals/${id}`);
+    });
+
     return { ok: true };
   };
 
@@ -865,10 +1043,16 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newEvent: ClubEvent = {
       ...data,
       slug,
-      id: `evt-${Date.now()}`,
+      id: `evt-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
       createdAt: new Date().toISOString(),
     };
     setEvents((prev) => [newEvent, ...prev]);
+
+    // Push new event to Firestore so participant devices immediately see the event
+    setDoc(doc(db, 'events', newEvent.id), cleanForFirestore(newEvent)).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `events/${newEvent.id}`);
+    });
+
     return { ok: true, event: newEvent };
   };
 
@@ -877,6 +1061,12 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!existing) return { ok: false, error: 'Event not found.' };
     const updated = { ...existing, ...updates };
     setEvents((prev) => prev.map((e) => (e.id === id ? updated : e)));
+
+    // Push updated event to Firestore so participant devices immediately see event edits
+    setDoc(doc(db, 'events', id), cleanForFirestore(updated), { merge: true }).catch((err) => {
+      handleFirestoreError(err, OperationType.WRITE, `events/${id}`);
+    });
+
     return { ok: true, event: updated };
   };
 
@@ -891,10 +1081,15 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
     }
     setEvents((prev) => prev.filter((e) => e.id !== id));
+
+    deleteDoc(doc(db, 'events', id)).catch((err) => {
+      handleFirestoreError(err, OperationType.DELETE, `events/${id}`);
+    });
+
     return { ok: true };
   };
 
-  const resetToSeedData = () => {
+  const resetToSeedData = async () => {
     setOrganization(SEED_ORGANIZATION);
     setFestivals(SEED_FESTIVALS);
     setEvents(SEED_EVENTS);
@@ -902,6 +1097,22 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCheckIns(SEED_CHECKINS);
     setUsers(SEED_USERS);
     setCurrentUser(null);
+
+    // Sync reset state to Firestore
+    try {
+      await setDoc(doc(db, 'organization', 'default'), cleanForFirestore(SEED_ORGANIZATION));
+      for (const f of SEED_FESTIVALS) {
+        await setDoc(doc(db, 'festivals', f.id), cleanForFirestore(f));
+      }
+      for (const e of SEED_EVENTS) {
+        await setDoc(doc(db, 'events', e.id), cleanForFirestore(e));
+      }
+      for (const r of SEED_REGISTRATIONS) {
+        await setDoc(doc(db, 'registrations', r.id), cleanForFirestore(r));
+      }
+    } catch (err) {
+      console.warn('Failed to reset Firestore collections:', err);
+    }
   };
 
   const value = useMemo<NexusContextValue>(

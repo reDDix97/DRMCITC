@@ -90,3 +90,25 @@ export async function signOutFirebase() {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
+
+/**
+ * Strips undefined fields recursively so Firestore setDoc does not throw
+ * "Unsupported field value: undefined".
+ */
+export function cleanForFirestore<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      if (Array.isArray(value)) {
+        result[key] = value.map((item) =>
+          typeof item === 'object' && item !== null ? cleanForFirestore(item) : item
+        );
+      } else if (typeof value === 'object' && value !== null) {
+        result[key] = cleanForFirestore(value);
+      } else {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+}

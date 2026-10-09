@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Search, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, Search, Ticket, User, X } from 'lucide-react';
 import { useNexus } from '../context/NexusContext';
 
 export const Navbar: React.FC = () => {
@@ -7,7 +7,6 @@ export const Navbar: React.FC = () => {
     currentPath,
     navigate,
     currentUser,
-    switchDemoRole,
     logout,
     setCommandPaletteOpen,
   } = useNexus();
@@ -21,6 +20,8 @@ export const Navbar: React.FC = () => {
     cleanPath.startsWith('/events/');
   const isMyRegsTab = cleanPath === '/my-registrations' || cleanPath.startsWith('/registration/');
   const isAdminTab = cleanPath.startsWith('/admin');
+
+  const isOrganizer = currentUser?.role === 'organizer';
 
   const handleNav = (target: string) => {
     navigate(target);
@@ -43,7 +44,7 @@ export const Navbar: React.FC = () => {
           NEXUS
         </a>
 
-        {/* Zone 2: 4 clean text navigation links */}
+        {/* Zone 2: Clean text navigation links */}
         <nav
           aria-label="Primary Navigation"
           className="hidden md:flex items-center gap-7 text-sm font-medium"
@@ -90,23 +91,28 @@ export const Navbar: React.FC = () => {
           >
             My Registrations
           </a>
-          <a
-            href="/admin"
-            onClick={(e) => {
-              e.preventDefault();
-              handleNav('/admin');
-            }}
-            className={`py-1 transition-colors whitespace-nowrap border-b-2 ${
-              isAdminTab
-                ? 'border-zinc-950 text-zinc-950 font-semibold'
-                : 'border-transparent text-zinc-600 hover:text-zinc-950 hover:border-zinc-300'
-            }`}
-          >
-            Organizer
-          </a>
+
+          {/* Organizer Workspace: STRICTLY visible only to verified Organizer accounts */}
+          {isOrganizer && (
+            <a
+              href="/admin"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNav('/admin');
+              }}
+              className={`py-1 transition-colors whitespace-nowrap border-b-2 flex items-center gap-1.5 ${
+                isAdminTab
+                  ? 'border-zinc-950 text-zinc-950 font-semibold'
+                  : 'border-transparent text-blue-700 hover:text-blue-900 hover:border-blue-300 font-semibold'
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Organizer Desk</span>
+            </a>
+          )}
         </nav>
 
-        {/* Zone 3: 1-2 primary actions */}
+        {/* Zone 3: Actions & Account Menu */}
         <div className="flex items-center gap-2.5">
           <button
             type="button"
@@ -128,7 +134,13 @@ export const Navbar: React.FC = () => {
               >
                 <span className="truncate max-w-[130px]">{currentUser.fullName}</span>
                 <span className="text-zinc-400">·</span>
-                <span className="text-blue-700 capitalize">{currentUser.role}</span>
+                <span
+                  className={`capitalize font-bold ${
+                    isOrganizer ? 'text-blue-700' : 'text-zinc-600'
+                  }`}
+                >
+                  {currentUser.role}
+                </span>
               </button>
 
               {accountMenuOpen && (
@@ -137,76 +149,63 @@ export const Navbar: React.FC = () => {
                     className="fixed inset-0 z-40"
                     onClick={() => setAccountMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-64 bg-white border border-zinc-200 rounded-xl shadow-lg p-3 z-50 text-sm">
-                    <div className="pb-2.5 mb-2.5 border-b border-zinc-100">
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-zinc-200 rounded-xl shadow-lg p-3 z-50 text-sm space-y-2">
+                    <div className="pb-2.5 border-b border-zinc-100">
                       <p className="font-semibold text-zinc-900 truncate">
                         {currentUser.fullName}
                       </p>
                       <p className="text-xs text-zinc-500 truncate">{currentUser.email}</p>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Role: <span className="font-medium text-zinc-800 capitalize">{currentUser.role}</span>
-                      </p>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <span
+                          className={`font-mono text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                            isOrganizer
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-zinc-100 text-zinc-700'
+                          }`}
+                        >
+                          {currentUser.role} Account
+                        </span>
+                        {currentUser.studentId && (
+                          <span className="font-mono text-[10px] text-zinc-400">
+                            {currentUser.studentId}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <p className="px-2 py-1 text-[11px] font-medium text-zinc-400">
-                        Quick Demo Switcher
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          switchDemoRole('participant');
-                          setAccountMenuOpen(false);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                          currentUser.role === 'participant'
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                            : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950'
-                        }`}
-                      >
-                        Participant Account (Tahmid Hasan)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          switchDemoRole('organizer');
-                          setAccountMenuOpen(false);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                          currentUser.role === 'organizer'
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold'
-                            : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950'
-                        }`}
-                      >
-                        Organizer Admin (Farhan Sadik)
-                      </button>
-                    </div>
-
-                    <div className="mt-2.5 pt-2.5 border-t border-zinc-100 flex flex-col gap-1">
+                    <div className="flex flex-col gap-1">
                       <button
                         type="button"
                         onClick={() => handleNav('/my-registrations')}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 cursor-pointer"
                       >
-                        My Event Passes
+                        <Ticket className="w-3.5 h-3.5 text-zinc-500" />
+                        <span>My Event Passes</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleNav('/admin')}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-zinc-700 hover:bg-zinc-50 cursor-pointer"
-                      >
-                        Organizer Workspace
-                      </button>
+
+                      {/* Organizer Workspace button: STRICTLY only for verified organizers */}
+                      {isOrganizer && (
+                        <button
+                          type="button"
+                          onClick={() => handleNav('/admin')}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-blue-700 hover:bg-blue-50 flex items-center gap-2 cursor-pointer"
+                        >
+                          <LayoutDashboard className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Organizer Workspace</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => {
                           logout();
                           setAccountMenuOpen(false);
-                          navigate('/login');
+                          navigate('/');
                         }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-red-700 hover:bg-red-50 cursor-pointer"
+                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-red-700 hover:bg-red-50 flex items-center gap-2 cursor-pointer border-t border-zinc-100 mt-1 pt-1.5"
                       >
-                        Sign Out
+                        <LogOut className="w-3.5 h-3.5 text-red-600" />
+                        <span>Sign Out</span>
                       </button>
                     </div>
                   </div>
@@ -281,22 +280,44 @@ export const Navbar: React.FC = () => {
             >
               My Registrations
             </button>
-            <button
-              type="button"
-              onClick={() => handleNav('/admin')}
-              className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium ${
-                isAdminTab ? 'bg-zinc-100 text-zinc-950 font-semibold' : 'text-zinc-700'
-              }`}
-            >
-              Organizer Dashboard
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('/login')}
-              className="text-left px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-700"
-            >
-              Account & Demo Switcher
-            </button>
+
+            {/* Only show Organizer Dashboard on mobile if logged in as organizer */}
+            {isOrganizer && (
+              <button
+                type="button"
+                onClick={() => handleNav('/admin')}
+                className={`text-left px-3 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                  isAdminTab
+                    ? 'bg-blue-50 text-blue-900 font-bold'
+                    : 'text-blue-700 hover:bg-blue-50'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4 text-blue-600" />
+                <span>Organizer Workspace</span>
+              </button>
+            )}
+
+            {!currentUser ? (
+              <button
+                type="button"
+                onClick={() => handleNav('/login')}
+                className="text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-zinc-900 hover:bg-zinc-50 border-t border-zinc-100 mt-1"
+              >
+                Sign In / Register
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  setMobileMenuOpen(false);
+                  navigate('/');
+                }}
+                className="text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 border-t border-zinc-100 mt-1"
+              >
+                Sign Out ({currentUser.fullName})
+              </button>
+            )}
           </nav>
         </div>
       )}

@@ -228,21 +228,10 @@ export const RegistrationConfirmPage: React.FC<RegistrationConfirmPageProps> = (
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-zinc-900 bg-white border border-zinc-300 hover:border-zinc-900 rounded-lg transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-zinc-900 bg-white border border-zinc-300 hover:border-zinc-900 rounded-lg transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>Print / download pass</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              navigate(`/admin/check-in?code=${encodeURIComponent(registration.registrationCode)}`)
-            }
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>Test in Organizer QR Scanner</span>
           </button>
         </div>
 

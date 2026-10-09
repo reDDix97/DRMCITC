@@ -8,10 +8,13 @@ export const CommandPalette: React.FC = () => {
     setCommandPaletteOpen,
     festivals,
     events,
+    currentUser,
     navigate,
     getEventAvailability,
   } = useNexus();
   const [query, setQuery] = useState('');
+
+  const isOrganizer = currentUser?.role === 'organizer';
 
   useEffect(() => {
     if (commandPaletteOpen) {
@@ -154,11 +157,16 @@ export const CommandPalette: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
               {[
                 { label: 'Explore All Events', path: '/fests' },
+                { label: 'Festivals Calendar', path: '/fests?tab=festivals' },
                 { label: 'My Event Registrations', path: '/my-registrations' },
-                { label: 'Organizer Dashboard', path: '/admin' },
-                { label: 'QR Check-In Mode', path: '/admin/check-in' },
-                { label: 'Participant Roster', path: '/admin/participants' },
-                { label: 'Organizer Analytics', path: '/admin/analytics' },
+                ...(isOrganizer
+                  ? [
+                      { label: 'Organizer Dashboard', path: '/admin' },
+                      { label: 'QR Check-In Terminal', path: '/admin/checkin' },
+                      { label: 'Participant Roster', path: '/admin/participants' },
+                      { label: 'Organizer Analytics', path: '/admin/analytics' },
+                    ]
+                  : []),
               ].map((item) => (
                 <button
                   key={item.path}

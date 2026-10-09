@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { RotateCcw, Save, ShieldCheck, Check } from 'lucide-react';
+import { RotateCcw, Save, ShieldCheck, Check, Key, AlertCircle } from 'lucide-react';
 import { useNexus } from '../../context/NexusContext';
 import { AdminLayout } from './AdminLayout';
 
 export const AdminSettingsPage: React.FC = () => {
-  const { organization, resetToSeedData, switchDemoRole, currentUser } = useNexus();
+  const { organization, resetToSeedData, currentUser, updateOrganizerPassword } = useNexus();
   const [savedMessage, setSavedMessage] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
@@ -15,10 +15,52 @@ export const AdminSettingsPage: React.FC = () => {
   const [contactEmail, setContactEmail] = useState(organization.contactEmail);
   const [institution, setInstitution] = useState(organization.institution || organization.campus);
 
+  // Password update fields
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordFeedback, setPasswordFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSavedMessage(true);
     setTimeout(() => setSavedMessage(false), 3000);
+  };
+
+  const handlePasswordUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordFeedback(null);
+    if (!newPassword || newPassword.trim().length < 6) {
+      setPasswordFeedback({
+        type: 'error',
+        message: 'Password must be at least 6 characters long.',
+      });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordFeedback({
+        type: 'error',
+        message: 'Password confirmation does not match.',
+      });
+      return;
+    }
+    const res = updateOrganizerPassword(newPassword);
+    if (!res.ok) {
+      setPasswordFeedback({
+        type: 'error',
+        message: res.error || 'Failed to update organizer password.',
+      });
+      return;
+    }
+    setPasswordFeedback({
+      type: 'success',
+      message: 'Organizer password updated successfully. Use this password for future logins.',
+    });
+    setNewPassword('');
+    setConfirmPassword('');
+    setTimeout(() => setPasswordFeedback(null), 4000);
   };
 
   const handleReset = () => {
@@ -31,7 +73,7 @@ export const AdminSettingsPage: React.FC = () => {
     <AdminLayout
       activeTab="settings"
       title="Club & System Configuration"
-      subtitle="Organization profile, operational defaults, and competition demo utilities"
+      subtitle="Organization profile, operational defaults, and organizer account security"
     >
       <div className="max-w-3xl space-y-6">
         {savedMessage && (
@@ -47,6 +89,104 @@ export const AdminSettingsPage: React.FC = () => {
             <span>NEXUS database has been restored to factory seed data.</span>
           </div>
         )}
+
+        {/* Organizer Account Security */}
+        <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-blue-600" />
+            <h3 className="font-display text-base font-bold text-zinc-950">
+              Organizer Account & Security
+            </h3>
+          </div>
+          <p className="text-xs text-zinc-500">
+            Active credentials for the authorized organizer account. Only logins matching this account ID/email and password are granted access to the Operations Workspace.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-zinc-50 rounded-xl border border-zinc-200 text-xs">
+            <div>
+              <p className="text-zinc-500">Account ID</p>
+              <p className="font-mono font-semibold text-zinc-900">
+                {currentUser?.id || 'usr-organizer-1'}
+              </p>
+            </div>
+            <div>
+              <p className="text-zinc-500">Official Email</p>
+              <p className="font-semibold text-zinc-900 truncate">
+                {currentUser?.email || 'organizer@drmcitclub.org'}
+              </p>
+            </div>
+            <div>
+              <p className="text-zinc-500">Executive Name</p>
+              <p className="font-semibold text-zinc-900">
+                {currentUser?.fullName || 'Farhan Sadik'}
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handlePasswordUpdate} className="space-y-4 pt-2">
+            <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-zinc-500" />
+              <span>Change Organizer Password</span>
+            </h4>
+
+            {passwordFeedback && (
+              <div
+                className={`p-3 rounded-xl text-xs font-medium flex items-center gap-2 ${
+                  passwordFeedback.type === 'success'
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                }`}
+              >
+                {passwordFeedback.type === 'success' ? (
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                )}
+                <span>{passwordFeedback.message}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-800 mb-1">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  className="w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-950"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-800 mb-1">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  className="w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-950"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors cursor-pointer"
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span>Update Organizer Password</span>
+              </button>
+            </div>
+          </form>
+        </div>
 
         {/* Organization Profile */}
         <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-xs space-y-4">
@@ -130,58 +270,13 @@ export const AdminSettingsPage: React.FC = () => {
           </form>
         </div>
 
-        {/* Evaluation & Demo Controls */}
-        <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-xs space-y-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-blue-600" />
-            <h3 className="font-display text-base font-bold text-zinc-950">
-              Evaluator Demo Controls
-            </h3>
-          </div>
-          <p className="text-xs text-zinc-500">
-            Easily toggle persona privileges to test both sides of NEXUS — participant registration flow and organizer command desk.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => switchDemoRole('organizer')}
-              className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
-                currentUser?.role === 'organizer'
-                  ? 'border-zinc-950 bg-zinc-50'
-                  : 'border-zinc-200 hover:border-zinc-300'
-              }`}
-            >
-              <p className="text-xs font-bold text-zinc-900">Switch to Organizer Role</p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">
-                Full access to create fests, manage rosters, and check in participants
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => switchDemoRole('participant')}
-              className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
-                currentUser?.role === 'participant'
-                  ? 'border-zinc-950 bg-zinc-50'
-                  : 'border-zinc-200 hover:border-zinc-300'
-              }`}
-            >
-              <p className="text-xs font-bold text-zinc-900">Switch to Participant Role</p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">
-                Simulate a student browsing fests, filling registrations, and viewing digital passes
-              </p>
-            </button>
-          </div>
-        </div>
-
         {/* Database Reset Section */}
         <div className="bg-white border border-red-200 rounded-2xl p-6 shadow-xs space-y-3">
           <h3 className="font-display text-base font-bold text-red-950">
-            Database Re-seed
+            Database Maintenance
           </h3>
           <p className="text-xs text-zinc-600">
-            Reset all localStorage changes back to the official competition seed data (3 festivals, 8 events, 36 registrations).
+            Reset all changes back to factory club data (3 official festivals, 8 events, initial registrations).
           </p>
 
           <div className="pt-2">
@@ -191,7 +286,7 @@ export const AdminSettingsPage: React.FC = () => {
               className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset to Factory Seed Data</span>
+              <span>Reset to Factory Club Data</span>
             </button>
           </div>
         </div>

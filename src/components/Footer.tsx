@@ -2,7 +2,9 @@ import React from 'react';
 import { useNexus } from '../context/NexusContext';
 
 export const Footer: React.FC = () => {
-  const { navigate, organization, resetToSeedData } = useNexus();
+  const { navigate, organization, currentUser, resetToSeedData } = useNexus();
+
+  const isOrganizer = currentUser?.role === 'organizer';
 
   return (
     <footer className="bg-white border-t border-zinc-200 mt-20 no-print">
@@ -70,45 +72,70 @@ export const Footer: React.FC = () => {
           </div>
 
           <div className="md:col-span-4 space-y-2.5">
-            <p className="text-xs font-semibold text-zinc-900">Operations Console</p>
-            <ul className="space-y-2 text-sm text-zinc-600">
-              <li>
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin')}
-                  className="hover:text-zinc-950 transition-colors cursor-pointer"
-                >
-                  Organizer Overview
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/participants')}
-                  className="hover:text-zinc-950 transition-colors cursor-pointer"
-                >
-                  Participant Roster & Statuses
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/check-in')}
-                  className="hover:text-zinc-950 transition-colors cursor-pointer"
-                >
-                  QR Check-In Terminal
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/analytics')}
-                  className="hover:text-zinc-950 transition-colors cursor-pointer"
-                >
-                  Registration & Capacity Analytics
-                </button>
-              </li>
-            </ul>
+            {isOrganizer ? (
+              <>
+                <p className="text-xs font-semibold text-zinc-900">Operations Console</p>
+                <ul className="space-y-2 text-sm text-zinc-600">
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin')}
+                      className="hover:text-zinc-950 transition-colors cursor-pointer"
+                    >
+                      Organizer Overview
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/participants')}
+                      className="hover:text-zinc-950 transition-colors cursor-pointer"
+                    >
+                      Participant Roster & Statuses
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/checkin')}
+                      className="hover:text-zinc-950 transition-colors cursor-pointer"
+                    >
+                      QR Check-In Terminal
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/analytics')}
+                      className="hover:text-zinc-950 transition-colors cursor-pointer"
+                    >
+                      Registration & Capacity Analytics
+                    </button>
+                  </li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-semibold text-zinc-900">Help & Support</p>
+                <ul className="space-y-2 text-sm text-zinc-600">
+                  <li>
+                    <span className="text-xs text-zinc-500">Contact: {organization.contactEmail}</span>
+                  </li>
+                  <li>
+                    <span className="text-xs text-zinc-500">Venue: {organization.campus}</span>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/fests')}
+                      className="text-xs font-semibold text-blue-700 hover:text-blue-900 cursor-pointer"
+                    >
+                      Explore Active Festivals & Events →
+                    </button>
+                  </li>
+                </ul>
+              </>
+            )}
           </div>
         </div>
 
@@ -123,17 +150,6 @@ export const Footer: React.FC = () => {
             >
               {organization.contactEmail}
             </a>
-            <span>·</span>
-            <button
-              type="button"
-              onClick={() => {
-                resetToSeedData();
-                navigate('/');
-              }}
-              className="text-zinc-500 hover:text-zinc-900 underline underline-offset-2 cursor-pointer"
-            >
-              Reset Demo Seed Data
-            </button>
           </div>
         </div>
       </div>

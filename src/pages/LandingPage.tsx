@@ -1,9 +1,9 @@
 import React from 'react';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { EventCard } from '../components/EventCard';
+import { FestivalHeroCarousel } from '../components/FestivalHeroCarousel';
 import { ResilientImage } from '../components/QrCodeSvg';
 import { useNexus } from '../context/NexusContext';
-import { HERO_IMAGE_URL } from '../data/seed';
 
 export const LandingPage: React.FC = () => {
   const {
@@ -13,6 +13,7 @@ export const LandingPage: React.FC = () => {
     events,
     registrations,
     checkIns,
+    currentUser,
     getEventAvailability,
   } = useNexus();
 
@@ -70,13 +71,23 @@ export const LandingPage: React.FC = () => {
                   <span>Explore Events</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin')}
-                  className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-900 bg-white border border-zinc-300 hover:border-zinc-900 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  <span>Organizer Dashboard</span>
-                </button>
+                {currentUser?.role === 'organizer' ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin')}
+                    className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-900 bg-white border border-zinc-300 hover:border-zinc-900 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    <span>Organizer Workspace</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/fests?tab=festivals')}
+                    className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-zinc-900 bg-white border border-zinc-300 hover:border-zinc-900 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    <span>View Festivals</span>
+                  </button>
+                )}
               </div>
 
               {/* Quantitative metrics strip */}
@@ -102,43 +113,14 @@ export const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Visual Carrier */}
+            {/* Right Visual Carrier: Carousel containing all festivals with their banners */}
             <div className="lg:col-span-6">
-              <div
-                onClick={() => navigate('/fests/tech-carnival-2026')}
-                role="link"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') navigate('/fests/tech-carnival-2026');
-                }}
-                className="group relative aspect-16/10 w-full rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-950 cursor-pointer"
-              >
-                <ResilientImage
-                  src={HERO_IMAGE_URL}
-                  alt="DRMC IT Club National Technology Symposium"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-                <div className="absolute bottom-0 inset-x-0 p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-xs text-zinc-300">
-                      <span className="text-emerald-400 font-semibold">Registration Open</span>
-                      <span aria-hidden="true">·</span>
-                      <span className="font-mono tabular-nums">Oct 24 – Oct 26, 2026</span>
-                    </div>
-                    <h2 className="font-display text-2xl font-bold tracking-tight text-white">
-                      Tech Carnival 2026
-                    </h2>
-                    <p className="text-xs sm:text-sm text-zinc-300 max-w-md">
-                      DRMC Main Auditorium & Innovation Complex · 4 Flagship Events
-                    </p>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white group-hover:text-blue-300 whitespace-nowrap">
-                    <span>Open Festival</span>
-                    <ArrowUpRight className="w-4 h-4" />
-                  </span>
-                </div>
-              </div>
+              <FestivalHeroCarousel
+                festivals={visibleFestivals}
+                events={visibleEvents}
+                onNavigate={navigate}
+                formatDateRange={formatDateRange}
+              />
             </div>
           </div>
         </div>

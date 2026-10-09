@@ -24,7 +24,6 @@ export const MyRegistrationsPage: React.FC = () => {
   } = useNexus();
 
   const [lookupQuery, setLookupQuery] = useState('');
-  const [showAllDemoMode, setShowAllDemoMode] = useState(false);
   const [selectedPass, setSelectedPass] = useState<Registration | null>(null);
   const [managingReg, setManagingReg] = useState<Registration | null>(null);
 
@@ -55,7 +54,6 @@ export const MyRegistrationsPage: React.FC = () => {
           r.studentId.toLowerCase().includes(q)
         );
       }
-      if (showAllDemoMode) return true;
       if (!currentUser) return false;
       return (
         r.userId === currentUser.id ||
@@ -63,7 +61,7 @@ export const MyRegistrationsPage: React.FC = () => {
         r.studentId.toUpperCase() === currentUser.studentId.toUpperCase()
       );
     });
-  }, [registrations, currentUser, lookupQuery, showAllDemoMode]);
+  }, [registrations, currentUser, lookupQuery]);
 
   const openManageModal = (reg: Registration) => {
     setManagingReg(reg);
@@ -123,19 +121,6 @@ export const MyRegistrationsPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowAllDemoMode((prev) => !prev)}
-            className={`px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
-              showAllDemoMode
-                ? 'bg-zinc-950 text-white border-zinc-950'
-                : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400'
-            }`}
-          >
-            {showAllDemoMode
-              ? 'Showing All Recent Passes'
-              : `My Passes Only (${currentUser?.fullName.split(' ')[0] || 'Guest'})`}
-          </button>
           <button
             type="button"
             onClick={() => navigate('/fests')}

@@ -63,7 +63,7 @@ const AppRouter: React.FC = () => {
       return <MyRegistrationsPage />;
     }
 
-    // Auth & demo switcher
+    // Authentication & Account Creation
     if (cleanPath === '/auth' || cleanPath === '/login') {
       return <AuthPage initialMode="login" />;
     }

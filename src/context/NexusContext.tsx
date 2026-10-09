@@ -71,14 +71,21 @@ interface NexusContextValue {
   users: UserProfile[];
   currentUser: UserProfile | null;
 
-  login: (email: string, password?: string) => { ok: boolean; error?: string; user?: UserProfile };
+  login: (emailOrId: string, password?: string) => {
+    ok: boolean;
+    error?: string;
+    user?: UserProfile;
+  };
   registerUser: (profile: Omit<UserProfile, 'id' | 'createdAt'>) => {
     ok: boolean;
     error?: string;
     user?: UserProfile;
   };
+  updateOrganizerPassword: (newPassword: string) => {
+    ok: boolean;
+    error?: string;
+  };
   logout: () => void;
-  switchDemoRole: (role: 'participant' | 'organizer') => void;
 
   getFestivalBySlug: (slugOrId: string) => Festival | undefined;
   getEventBySlug: (slugOrId: string) => ClubEvent | undefined;
@@ -168,9 +175,19 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
-  const [festivals, setFestivals] = useState<Festival[]>(() =>
-    loadFromStorage(STORAGE_KEYS.FESTIVALS, SEED_FESTIVALS)
-  );
+  const [festivals, setFestivals] = useState<Festival[]>(() => {
+    const raw = loadFromStorage(STORAGE_KEYS.FESTIVALS, SEED_FESTIVALS);
+    return raw.map((f) => {
+      // If coverImage contains old baked-in SVG text tags, upgrade to the clean high-res backdrop
+      if (f.coverImage && (f.coverImage.includes('<text') || f.coverImage.includes('NEXUS OPERATIONS'))) {
+        const seedMatch = SEED_FESTIVALS.find((sf) => sf.id === f.id);
+        if (seedMatch) {
+          return { ...f, coverImage: seedMatch.coverImage };
+        }
+      }
+      return f;
+    });
+  });
   const [events, setEvents] = useState<ClubEvent[]>(() =>
     loadFromStorage(STORAGE_KEYS.EVENTS, SEED_EVENTS)
   );
@@ -184,7 +201,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadFromStorage(STORAGE_KEYS.USERS, SEED_USERS)
   );
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() =>
-    loadFromStorage<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, SEED_USERS[1])
+    loadFromStorage<UserProfile | null>(STORAGE_KEYS.CURRENT_USER, null)
   );
 
   useEffect(() => saveToStorage(STORAGE_KEYS.FESTIVALS, festivals), [festivals]);
@@ -221,21 +238,46 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const login = (email: string) => {
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) {
-      return { ok: false, error: 'Please enter a valid email address.' };
+  const login = (emailOrId: string, password?: string) => {
+    const query = emailOrId.trim().toLowerCase();
+    if (!query) {
+      return { ok: false, error: 'Please enter your email or account ID.' };
     }
-    const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
-    if (existing) {
-      setCurrentUser(existing);
-      return { ok: true, user: existing };
+    const existing = users.find(
+      (u) =>
+        u.email.toLowerCase() === query ||
+        u.id.toLowerCase() === query ||
+        u.studentId.toLowerCase() === query
+    );
+    if (!existing) {
+      return {
+        ok: false,
+        error:
+          'No account found matching this email or account ID. Verify your credentials or create a participant account.',
+      };
     }
-    return {
-      ok: false,
-      error:
-        'No account found with that email. Use one of the demo credentials below or create a new participant account.',
-    };
+
+    // Strict authentication for Organizer accounts
+    if (existing.role === 'organizer') {
+      const requiredPassword = existing.password || 'NexusAdmin2026!';
+      if (!password || password.trim() !== requiredPassword) {
+        return {
+          ok: false,
+          error: 'Incorrect organizer password. Access to organizer workspace is denied.',
+        };
+      }
+    } else if (existing.password && password) {
+      // Participant password check if configured
+      if (password.trim() !== existing.password) {
+        return {
+          ok: false,
+          error: 'Incorrect password for this participant account.',
+        };
+      }
+    }
+
+    setCurrentUser(existing);
+    return { ok: true, user: existing };
   };
 
   const registerUser = (profile: Omit<UserProfile, 'id' | 'createdAt'>) => {
@@ -245,6 +287,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     const newUser: UserProfile = {
       ...profile,
+      role: 'participant', // Strictly participant role
       email: cleanEmail,
       id: `usr-${Date.now()}`,
       createdAt: new Date().toISOString(),
@@ -254,13 +297,26 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return { ok: true, user: newUser };
   };
 
-  const logout = () => {
-    setCurrentUser(null);
+  const updateOrganizerPassword = (newPassword: string) => {
+    if (!newPassword || newPassword.trim().length < 6) {
+      return { ok: false, error: 'Password must be at least 6 characters long.' };
+    }
+    if (currentUser?.role !== 'organizer') {
+      return {
+        ok: false,
+        error: 'Unauthorized: Only authenticated organizers can update organizer security credentials.',
+      };
+    }
+    const cleanPass = newPassword.trim();
+    setUsers((prev) =>
+      prev.map((u) => (u.id === currentUser.id ? { ...u, password: cleanPass } : u))
+    );
+    setCurrentUser((prev) => (prev ? { ...prev, password: cleanPass } : null));
+    return { ok: true };
   };
 
-  const switchDemoRole = (role: 'participant' | 'organizer') => {
-    const target = users.find((u) => u.role === role) || SEED_USERS[role === 'organizer' ? 0 : 1];
-    setCurrentUser(target);
+  const logout = () => {
+    setCurrentUser(null);
   };
 
   const getFestivalBySlug = (slugOrId: string) =>
@@ -740,7 +796,7 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setRegistrations(SEED_REGISTRATIONS);
     setCheckIns(SEED_CHECKINS);
     setUsers(SEED_USERS);
-    setCurrentUser(SEED_USERS[1]);
+    setCurrentUser(null);
   };
 
   const value = useMemo<NexusContextValue>(
@@ -758,8 +814,8 @@ export const NexusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       currentUser,
       login,
       registerUser,
+      updateOrganizerPassword,
       logout,
-      switchDemoRole,
       getFestivalBySlug,
       getEventBySlug,
       getEventAvailability,

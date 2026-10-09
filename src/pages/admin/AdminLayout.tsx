@@ -13,6 +13,8 @@ import {
   QrCode,
   Settings,
   ShieldAlert,
+  ShieldCheck,
+  KeyRound,
   Users,
   X,
 } from 'lucide-react';
@@ -33,7 +35,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   subtitle,
   actionButton,
 }) => {
-  const { currentPath, navigate, currentUser, logout, login, signInWithGoogle } = useNexus();
+  const { currentPath, navigate, currentUser, logout, login, signInWithGoogle, users } = useNexus();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Inline login state for the access gate if not authenticated
@@ -41,6 +43,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const [gatePassword, setGatePassword] = useState('');
   const [showGatePassword, setShowGatePassword] = useState(false);
   const [gateError, setGateError] = useState<string | null>(null);
+
+  const organizerUser = users.find((u) => u.role === 'organizer');
+  const organizerEmail = organizerUser?.email || 'organizer@drmcitclub.org';
+  const organizerPassword = organizerUser?.password || 'NexusAdmin2026!';
 
   const isOrganizer = currentUser?.role === 'organizer';
 
@@ -152,6 +158,45 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               </div>
             ) : (
               <form onSubmit={handleGateLogin} className="space-y-4">
+                {/* Organizer Credentials Box - Only for test purpose */}
+                <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3.5 space-y-2.5 text-left">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="text-xs font-bold text-amber-200">
+                        Organizer Credentials
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      only for test purpose
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="bg-zinc-900/90 border border-amber-500/20 rounded p-2">
+                      <span className="block text-[10px] text-zinc-400 font-medium">Organizer Email</span>
+                      <code className="text-xs text-amber-200 select-all font-mono break-all">{organizerEmail}</code>
+                    </div>
+                    <div className="bg-zinc-900/90 border border-amber-500/20 rounded p-2">
+                      <span className="block text-[10px] text-zinc-400 font-medium">Organizer Password</span>
+                      <code className="text-xs text-amber-200 select-all font-mono">{organizerPassword}</code>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGateEmail(organizerEmail);
+                      setGatePassword(organizerPassword);
+                      setGateError(null);
+                    }}
+                    className="w-full py-1.5 px-3 text-xs font-semibold text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Auto-fill Organizer Credentials</span>
+                  </button>
+                </div>
+
                 {gateError && (
                   <div className="p-3 bg-red-950/80 border border-red-800 rounded-xl text-xs text-red-300 font-medium">
                     {gateError}

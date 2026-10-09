@@ -1,6 +1,6 @@
 # Nexus · Centralized Festival & Club Operations Management Platform
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React 19](https://img.shields.io/badge/React-19.0-61dafb.svg?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.3-646cff.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -270,8 +270,8 @@ In full disclosure and compliance with transparency guidelines, the following AI
 
 ## 12. License
 
-This project is licensed under the **Apache License 2.0**.  
-See the [LICENSE](LICENSE) file or visit [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0) for full terms and conditions.
+This project is licensed under the **MIT License**.  
+See the [LICENSE](LICENSE) file for the full license text.
 
 ---
 

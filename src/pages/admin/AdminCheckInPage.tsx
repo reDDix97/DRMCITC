@@ -70,34 +70,11 @@ export const AdminCheckInPage: React.FC = () => {
     }
   };
 
-  const handleSimulateScan = () => {
-    // Pick an un-checked-in or confirmed registration to simulate camera feed detection
-    const candidates = registrations.filter((r) => r.status === 'Confirmed' || r.status === 'Registered');
-    const target = candidates.length > 0
-      ? candidates[Math.floor(Math.random() * candidates.length)]
-      : registrations[0];
-
-    if (target) {
-      setInputCode(target.registrationCode);
-      handleLookup(target.registrationCode);
-    }
-  };
-
   return (
     <AdminLayout
       activeTab="checkin"
       title="Check-In Verification Desk"
       subtitle="Rapid QR code scanning, credential validation, and event day check-in dispatch"
-      actionButton={
-        <button
-          type="button"
-          onClick={handleSimulateScan}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
-        >
-          <ScanLine className="w-4 h-4" />
-          <span>Simulate QR Scan</span>
-        </button>
-      }
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Scanner Input & Active Card */}

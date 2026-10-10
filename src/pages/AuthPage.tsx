@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, ShieldCheck, Copy, Check, KeyRound } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNexus } from '../context/NexusContext';
 
 interface AuthPageProps {
@@ -7,7 +7,7 @@ interface AuthPageProps {
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login' }) => {
-  const { navigate, login, registerUser, signInWithGoogle, users } = useNexus();
+  const { navigate, login, registerUser, signInWithGoogle } = useNexus();
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
 
   // Clean empty inputs (no auto-prefills)
@@ -15,25 +15,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login' }) => 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Organizer test credentials
-  const organizerUser = users.find((u) => u.role === 'organizer');
-  const organizerEmail = organizerUser?.email || 'organizer@drmcitclub.org';
-  const organizerPassword = organizerUser?.password || 'NexusAdmin2026!';
-  const [copiedKey, setCopiedKey] = useState<'email' | 'password' | null>(null);
-
-  const handleCopy = (text: string, key: 'email' | 'password') => {
-    navigator.clipboard?.writeText(text);
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
-
-  const handleApplyOrganizer = () => {
-    setMode('login');
-    setEmailOrId(organizerEmail);
-    setPassword(organizerPassword);
-    setError(null);
-  };
 
   // Participant registration fields
   const [fullName, setFullName] = useState('');
@@ -134,88 +115,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login' }) => 
             {error}
           </div>
         )}
-
-        {/* Organizer Credentials Box - Only for test purpose */}
-        <div className="rounded-xl border border-amber-300 bg-amber-50/80 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-amber-800 shrink-0" />
-              <span className="text-xs font-bold text-zinc-900">
-                Organizer Test Credentials
-              </span>
-            </div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-bold tracking-wide bg-amber-200 text-amber-950 border border-amber-300/80 shadow-2xs">
-              only for test purpose
-            </span>
-          </div>
-
-          <p className="text-xs text-zinc-600">
-            Use this organizer account to access the administrative control desks, fest management, and operations workspace.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            <div className="bg-white/95 border border-amber-200 rounded-lg p-2.5 flex flex-col justify-between shadow-2xs">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-semibold text-zinc-500">Organizer Email</span>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(organizerEmail, 'email')}
-                  className="text-[11px] text-amber-800 hover:text-amber-950 font-medium cursor-pointer inline-flex items-center gap-1 transition-colors"
-                  title="Copy email"
-                >
-                  {copiedKey === 'email' ? (
-                    <span className="text-emerald-700 font-semibold flex items-center gap-0.5">
-                      <Check className="w-3 h-3" /> Copied
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-0.5">
-                      <Copy className="w-3 h-3" /> Copy
-                    </span>
-                  )}
-                </button>
-              </div>
-              <code className="font-mono text-xs font-semibold text-zinc-900 select-all break-all">
-                {organizerEmail}
-              </code>
-            </div>
-
-            <div className="bg-white/95 border border-amber-200 rounded-lg p-2.5 flex flex-col justify-between shadow-2xs">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-semibold text-zinc-500">Organizer Password</span>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(organizerPassword, 'password')}
-                  className="text-[11px] text-amber-800 hover:text-amber-950 font-medium cursor-pointer inline-flex items-center gap-1 transition-colors"
-                  title="Copy password"
-                >
-                  {copiedKey === 'password' ? (
-                    <span className="text-emerald-700 font-semibold flex items-center gap-0.5">
-                      <Check className="w-3 h-3" /> Copied
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-0.5">
-                      <Copy className="w-3 h-3" /> Copy
-                    </span>
-                  )}
-                </button>
-              </div>
-              <code className="font-mono text-xs font-semibold text-zinc-900 select-all">
-                {organizerPassword}
-              </code>
-            </div>
-          </div>
-
-          <div className="pt-0.5">
-            <button
-              type="button"
-              onClick={handleApplyOrganizer}
-              className="w-full py-1.5 px-3 text-xs font-semibold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-300 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Fill Organizer Credentials</span>
-            </button>
-          </div>
-        </div>
 
         {mode === 'login' ? (
           <form onSubmit={handleLoginSubmit} className="space-y-4">

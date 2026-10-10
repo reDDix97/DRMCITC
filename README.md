@@ -159,9 +159,6 @@ The platform includes pre-seeded accounts configured for immediate evaluation ac
 | Role | Email / Identifier | Password | Access Privileges |
 | :--- | :--- | :--- | :--- |
 | **Lead Organizer (Admin)** | `organizer@drmcitclub.org` | `NexusAdmin2026!` | Full Operations Workspace (`/admin`): Fest & Event Editor, Check-In, Analytics, Settings |
-| **Participant (Student)** | `tahmid.hasan@drmc.edu.bd` | `NexusStudent2026!` | Public Portal, Event Registration, Digital Pass View (`/my-registrations`) |
-
-> **Quick Access Tip**: The Authentication page (`/auth`) provides quick one-click demo login buttons to test both the Organizer and Participant roles instantly without manual typing.
 
 ---
 
